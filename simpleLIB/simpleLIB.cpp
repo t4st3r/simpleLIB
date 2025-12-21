@@ -188,4 +188,8 @@ float VoltageSensor::read() {
 
 void toggle(bool &toggled) {toggled = !toggled;}
 
+float toActualValue(float reading, float adcVolt, float adcBits) {
+  return (reading * (adcVolt / pow(2, adcBits)));
+}
+
 
