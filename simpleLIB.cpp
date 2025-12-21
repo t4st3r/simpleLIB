@@ -104,7 +104,6 @@ bool BasicButton::beingPressed() {
   if (this->serialUsed == true && this->pressed == true) {
     this->serial.print("Button number "); this->serial.print(this->buttonNumber); this->serial.println(" is being pressed!");
   }
-  this->pressed = false;
   return this->pressed;
 }
 
