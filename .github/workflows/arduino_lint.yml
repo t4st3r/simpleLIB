@@ -1,6 +1,8 @@
 name: arduino_lint
 
-on: [push, pull_request]
+on:
+ release:
+    types: [published]
 jobs:
   lint:
     runs-on: ubuntu-latest
