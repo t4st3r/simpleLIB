@@ -17,3 +17,5 @@ read KEYWORD2
 VoltageSensor KEYWORD1
 initWith KEYWORD2
 read KEYWORD2
+toggle KEYWORD2
+toActualValue KEYWORD2
