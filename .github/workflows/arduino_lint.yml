@@ -1,16 +1,35 @@
 name: arduino_lint
 
 on:
- release:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  release:
     types: [published]
+
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: arduino/arduino-lint-action@v2
+
+      - name: Run Arduino Lint
+        uses: arduino/arduino-lint-action@v2
         with:
           library-manager: submit
           compliance: specification
-          report-file: lint_report
+          report-file: lint_report.json
           verbose: true
+          recursive: true
+
+      - name: Upload lint report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arduino-lint-report
+          path: lint_report.json
