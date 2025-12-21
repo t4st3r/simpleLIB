@@ -48,13 +48,22 @@ BasicButton::BasicButton(int butNum) {
 
 }
 
-void BasicButton::initWith(PinName Bpin, bool useSer, Stream &ser) {
+void BasicButton::initWith(PinName Bpin, int mode, int activeOn, bool useSer, Stream &ser) {
   this->serialUsed = useSer;
   this->serial = ser;
   this->buttonPin = Bpin;
+  this->mod = mode;
+  this->actOn = activeOn;
 
-  pinMode(this->buttonPin, INPUT_PULLUP);
-  
+  if (this->mod == 0) {
+    pinMode(this->buttonPin, INPUT_PULLUP);
+    this->actOn = 0;
+  } else if (this->mod == 1) {
+    pinMode(this->buttonPin, INPUT_PULLDOWN);
+    this->actOn = 1;
+  } else {
+    pinMode(this->buttonPin, INPUT);
+  }
   state = digitalRead(this->buttonPin);
   lastState = digitalRead(this->buttonPin);
 
@@ -63,7 +72,7 @@ void BasicButton::initWith(PinName Bpin, bool useSer, Stream &ser) {
 bool BasicButton::buttonPressed() {
   
   this->state = digitalRead(this->buttonPin);
-  this->wasPressed = (this->state != this->lastState && this->state == 0);
+  this->wasPressed = (this->state != this->lastState && this->state == this->actOn);
   this->lastState = this->state;
   if (this->serialUsed == true && this->wasPressed == true) {
     this->serial.print("Button number "); this->serial.print(this->buttonNumber); this->serial.println(" pressed!");
@@ -75,7 +84,7 @@ void BasicButton::waitForPress() {
   
   while(this->wasPressed == false) {
     this->state = digitalRead(this->buttonPin);
-    this->wasPressed = (this->state != this->lastState && this->state == 0);
+    this->wasPressed = (this->state != this->lastState && this->state == this->actOn);
     this->lastState = this->state;
     delay(5);
   }
@@ -88,7 +97,7 @@ void BasicButton::waitForPress() {
 bool BasicButton::beingPressed() {
   
   this->state = digitalRead(this->buttonPin);
-  this->pressed = (this->state == this->lastState && this->state == 0);
+  this->pressed = (this->state == this->lastState && this->state == this->actOn);
   this->lastState = this->state;
   delay(5);
 
