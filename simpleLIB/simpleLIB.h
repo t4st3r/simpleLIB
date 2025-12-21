@@ -91,4 +91,8 @@ class VoltageSensor {
 
 };
 
+void toggle(bool &toggled);
+
+float toActualValue(float reading, float adcVolt, float adcBits);
+
 #endif
