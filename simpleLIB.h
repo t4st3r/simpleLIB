@@ -13,8 +13,9 @@ class TempPreset {
   int presetNumber = 0;
   Stream *serial;
   bool inUse(int set); //checks if the preset is currently used, set: temperature to be compared with preset temperature, returns true if the temperature of the preset equals the set system temperature
-  void initWith(int _temp = 0, int addr = 0, bool useSer = false, Stream *ser = NULL);
-  //_temp: preset temperature, addr: address in EEPROM memory (if used), useSer: use/not use serial monitoring, &ser: serial to be used
+  /*_temp: preset temperature (default 0), addr: address in EEPROM memory (if used, default 0), useSer: use/not use serial monitoring (default false); 
+  &ser: serial to be used, HAS TO BE CALLED AS A REFERENCE e.g. &Serial (default null, no serial interface defined)*/
+  void initWith(int _temp = 0, int addr = 0, bool useSer = false, Stream *ser = nullptr);
   void saveTo(EEPROM_SPI_WE& mem); //save preset to EEPROM memory at the address that is set through initWith
   void recallFrom(EEPROM_SPI_WE& mem); //load preset from EEPROM memory at the address that is set through initWith
   void setTemperature(float temperature); //change preset temperature to passed temperature value
@@ -35,12 +36,12 @@ class BasicButton {
   PinName buttonPin;
   Stream *serial;
   bool buttonPressed(); //returns true if button press is detected, otherwise returns false
-  void initWith(PinName Bpin, int mode = 0, int activeOn = 0, bool useSer = false, Stream *ser = NULL); //used instead of begin()
-  /*Bpin: pin used by button; mode: 0 = internal pullup (button pulling down), 1 = internal pulldown (button pulling up), any other value = no internal pullup/down;
-  activeOn: 0 = input low active, 1 = input high active (only to be used with mode other than 0 or 1); useSer: true = serial monitoring used, false = serial monitoring not used, default false;
-  &ser = serial interface to be used for monitoring, default "Serial"*/
+  /*Bpin: pin used by button; mode (default 0): 0 = internal pullup (button pulling down), 1 = internal pulldown (button pulling up), any other value = no internal pullup/down;
+  activeOn (default 0): 0 = input low active, 1 = input high active (only to be used with mode other than 0 or 1); useSer (default false): true = serial monitoring used, false = serial monitoring not used;
+  &ser = serial interface to be used for monitoring, HAS TO BE CALLED AS A REFERENCE e.g. &Serial (default null, no serial interface defined)*/
+  void initWith(PinName Bpin, int mode = 0, int activeOn = 0, bool useSer = false, Stream *ser = nullptr); //used instead of begin()
   void waitForPress(); //waits until button is pressed
-  bool beingPressed(); //returns true if button is continuously pressed, otherwise false
+  bool beingPressed(); //returns true if button is continuously pressed, otherwise returns false
 
 };
 
@@ -59,10 +60,11 @@ class NTCTempSensor {
   bool serialUsed;
   Stream *serial;
   PinName sensorPin;
-  void initWith(PinName sensPin, float adcRefV, float adcBits, float beta, float resAtRoomTemp, float seriesResistor, bool useSer = false, Stream *ser = NULL);
   /*sensPin: pin to read voltage from, has to be ADC-capable; adcRefV: ADC reference voltage/voltage range; adcBits: ADC bit count; beta: NTC thermistor beta parameter;
-  resAtRoomTemp: thermistor resistance at room temperature (25°C); seriesResistor: pull up resistor value; useSer: serial monitoring enabled/disabled; &ser: serial interface used for monitoring*/
-  float read(); //read temperature of sensor, returns °C
+  resAtRoomTemp: thermistor resistance at room temperature (25°C); seriesResistor: pull up resistor value; useSer: serial monitoring enabled/disabled (default false);
+  &ser: serial interface used for monitoring, HAS TO BE CALLED AS A REFERENCE e.g. &Serial (default null, no serial interface defined)*/
+  void initWith(PinName sensPin, float adcRefV, float adcBits, float beta, float resAtRoomTemp, float seriesResistor, bool useSer = false, Stream *ser = nullptr);
+  float read(); //returns measured temperature from sensor in °C
 
 };
 
@@ -71,7 +73,7 @@ class CurrentSensor {
   CurrentSensor(int sensNum);
   float rawCurrent;
   float adcSteps;
-  float adcR;
+  float adcU;
   float actualCurrent;
   float sensorResistance;
   float sensorVoltPerVolt;
@@ -79,8 +81,11 @@ class CurrentSensor {
   bool serialUsed;
   Stream *serial;
   PinName currentPin;
-  void initWith(PinName currPin, float sensR, float sensVpV, float adcBits, float adcRange, bool useSer = false, Stream *ser = NULL);
-  float read();
+  /*currPin: pin used for measurement input, pin must be ADC-capable; sensR: sensing resistor resistance; sensVpV: volt/volt value of used current measurement amplifier (usually found in datasheet);
+  adcBits: bit count of ADC used for measurement; adcRefV: ADC reference voltage/voltage range; useSer: true = serial monitoring used, false = serial monitoring no used (default false);
+  *ser: serial monitoring to be used, HAS TO BE CALLED AS A REFERENCE e.g. &Serial (default null, no serial interface defined)*/
+  void initWith(PinName currPin, float sensR, float sensVpV, float adcBits, float adcRefV, bool useSer = false, Stream *ser = nullptr);
+  float read(); //returns measured current from sensor in A
 
 };
 
@@ -89,20 +94,22 @@ class VoltageSensor {
   VoltageSensor(int sensNum);
   float rawVoltage;
   float adcSteps;
-  float adcR;
+  float adcU;
   float actualVoltage;
   float sensorVoltPerVolt;
   int sensorNumber;
   bool serialUsed;
   Stream *serial;
   PinName voltagePin;
-  void initWith(PinName voltPin, float sensVpV, float adcBits, float adcRange, bool useSer = false, Stream *ser = NULL);
+  /*voltPin: pin on which to read voltage, pin has to be ADC-capable; sensVpV: volt/volt of voltage measurement, when using resistor divider or a preamplifier for example; adcBits: bit count of ADC used for measurement;
+  adcRefV: ADC reference voltage/voltage range; useSer: true = serial monitoring used, false = serial monitoring no used (default false); *ser = serial monitoring to be used, HAS TO BE CALLED AS A REFERENCE e.g. &Serial (default null, no serial interface defined)*/
+  void initWith(PinName voltPin, float sensVpV, float adcBits, float adcRefV, bool useSer = false, Stream *ser = nullptr);
   float read();
 
 };
 
-void toggle(bool &toggled);
+void toggle(bool &toggled); //flips the value of a bool (TRUE to FALSE or FALSE to TRUE), &toggled: bool to be flipped
 
-float toActualValue(float reading, float adcVolt, float adcBits);
+float toActualValue(float reading, float adcRefV, float adcBits); //converts raw ADC reading to actual voltage value, reading: raw ADC reading; adcRefV: ADC reference voltage/voltage range; adcBits: bit count of ADC used for measurement
 
 #endif
