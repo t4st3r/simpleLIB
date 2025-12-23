@@ -9,7 +9,7 @@ TempPreset::TempPreset(int presNum) {
 
 }
 
-void TempPreset::initWith(int _temp, int addr, bool useSer, Stream &ser) {
+void TempPreset::initWith(int _temp, int addr, bool useSer, Stream *ser) {
   this->temp = _temp;
   this->memoryAddress = addr;
   this->serialUsed = useSer;
@@ -18,9 +18,10 @@ void TempPreset::initWith(int _temp, int addr, bool useSer, Stream &ser) {
 
 bool TempPreset::inUse(int set) {
   if (this->temp == set) {
-    if (this->serialUsed == true) {this->serial.print("Preset number "); this->serial.print(this->presetNumber); this->serial.println(" set!");}
+    if (this->serialUsed == true) {this->serial->print("Preset number "); this->serial->print(this->presetNumber); this->serial->println(" in use!");}
     return true;
   } else {
+    if (this->serialUsed == true) {this->serial->print("Preset number "); this->serial->print(this->presetNumber); this->serial->println(" not in use!");}
     return false;
   }
 }
@@ -28,27 +29,34 @@ bool TempPreset::inUse(int set) {
 void TempPreset::saveTo(EEPROM_SPI_WE &mem) {
   mem.put(this->memoryAddress, this->temp);
   if (this->serialUsed == true) {
-    this->serial.print("Preset number "); this->serial.print(this->presetNumber); this->serial.println(" saved!");
+    this->serial->print("Preset number "); this->serial->print(this->presetNumber); this->serial->println(" saved!");
   }
 }
 
 void TempPreset::recallFrom(EEPROM_SPI_WE &mem) {
   mem.get(this->memoryAddress, this->temp);
   if (this->serialUsed == true) {
-    this->serial.print("Preset number "); this->serial.print(this->presetNumber); this->serial.println(" loaded!");
+    this->serial->print("Preset number "); this->serial->print(this->presetNumber); this->serial->println(" loaded!");
+  }
+}
+
+void TempPreset::setTemperature(float temperature) {
+  this->temp = temperature;
+  if (this->serialUsed == true) {
+    this->serial->print("Preset number "); this->serial->print(this->presetNumber); this->serial->print(" temperature changed to: "); this->serial->println(temperature);
   }
 }
 
 //end of class TempPreset
 
-//Class BasicButton to be used for basic button controlled applications, including protection for holding buttons down and key press detection.
+//Class BasicButton to be used for basic button controlled applications, including function for holding buttons down and key press detection.
 
 BasicButton::BasicButton(int butNum) {
   this->buttonNumber = butNum;
 
 }
 
-void BasicButton::initWith(PinName Bpin, int mode, int activeOn, bool useSer, Stream &ser) {
+void BasicButton::initWith(PinName Bpin, int mode, int activeOn, bool useSer, Stream *ser) {
   this->serialUsed = useSer;
   this->serial = ser;
   this->buttonPin = Bpin;
@@ -75,7 +83,7 @@ bool BasicButton::buttonPressed() {
   this->wasPressed = (this->state != this->lastState && this->state == this->actOn);
   this->lastState = this->state;
   if (this->serialUsed == true && this->wasPressed == true) {
-    this->serial.print("Button number "); this->serial.print(this->buttonNumber); this->serial.println(" pressed!");
+    this->serial->print("Button number "); this->serial->print(this->buttonNumber); this->serial->println(" pressed!");
   }
   return this->wasPressed;
 }
@@ -90,7 +98,7 @@ void BasicButton::waitForPress() {
   }
   this->wasPressed = false;
   if (this->serialUsed == true) {
-    this->serial.print("Button number "); this->serial.print(this->buttonNumber); this->serial.println(" was pressed!");
+    this->serial->print("Button number "); this->serial->print(this->buttonNumber); this->serial->println(" was pressed!");
   }
 }
 
@@ -102,41 +110,42 @@ bool BasicButton::beingPressed() {
   delay(5);
 
   if (this->serialUsed == true && this->pressed == true) {
-    this->serial.print("Button number "); this->serial.print(this->buttonNumber); this->serial.println(" is being pressed!");
+    this->serial->print("Button number "); this->serial->print(this->buttonNumber); this->serial->println(" is being pressed!");
   }
   return this->pressed;
 }
 
 //end of class BasicButton
 
-//Class TempSensor to be used in conjunction with a thermistor
+//Class NTCTempSensor to be used in conjunction with an NTC thermistor, pulled up by a series resistor, adcRefV has to equal the pull up voltage
 
-TempSensor::TempSensor(int sensNum) {
+NTCTempSensor::NTCTempSensor(int sensNum) {
   this->sensorNumber = sensNum;
 
 }
 
-void TempSensor::initWith(PinName sensPin, float adcRefV, float adcBits, float beta, float resAtRoomTemp, bool useSer, Stream &ser) { //used instead of begin()
+void NTCTempSensor::initWith(PinName sensPin, float adcRefV, float adcBits, float beta, float resAtRoomTemp, float seriesResistor, bool useSer, Stream *ser) { //used instead of begin()
   this->adcU = adcRefV;
   this->adcSteps = pow(2, adcBits) - 1;
   this->ntcB = beta;
   this->sensorPin = sensPin;
   this->resAt25 = resAtRoomTemp;
+  this->serR = seriesResistor;
   this->serialUsed = useSer;
   this->serial = ser;
   analogReadResolution(this->adcSteps);
 
 }
 
-float TempSensor::read() {
+float NTCTempSensor::read() {
   this->rawTemp = analogRead(this->sensorPin);
   this->adcRealU = this->rawTemp * (this->adcU/this->adcSteps);
-  this->realTemp = (1.0 / ((log(((this->adcRealU * this->resAt25) / (this->adcRealU - this->adcU)) / this->resAt25) * (1.0 / ntcB)) + (1.0 / 298.15)) - 273.15); // output in Celsius
+  this->realTemp = (1.0 / ((log(((this->adcRealU * this->serR) / (this->adcU - this->adcRealU)) / this->resAt25) * (1.0 / ntcB)) + (1.0 / 298.15)) - 273.15); // output in Celsius
   return this->realTemp;
 
 }
 
-//end of class TempSensor
+//end of class NTCTempSensor
 
 //Class CurrentSensor to be used with conjuction with a current measuring amplifier connected to the MCU ADC
 
@@ -144,7 +153,7 @@ CurrentSensor::CurrentSensor(int sensNum) {
   this->sensorNumber = sensNum;
 }
 
-void CurrentSensor::initWith(PinName currPin, float sensR, float sensVpV, float adcBits, float adcRange, bool useSer, Stream &ser) {
+void CurrentSensor::initWith(PinName currPin, float sensR, float sensVpV, float adcBits, float adcRange, bool useSer, Stream *ser) {
   this->adcSteps = pow(2, adcBits) - 1;
   this->adcR = adcRange;
   this->sensorResistance = sensR;
@@ -160,7 +169,7 @@ float CurrentSensor::read() {
   this->rawCurrent = analogRead(this->currentPin);
   this->actualCurrent = (this->rawCurrent * (this->adcR/this->adcSteps) * (1 / this->sensorVoltPerVolt)) / this->sensorResistance;
   if (this->serialUsed == true) {
-    this->serial.print("Sensor number "); this->serial.print(this->sensorNumber); this->serial.print(" value: "); this->serial.println(this->actualCurrent);
+    this->serial->print("Sensor number "); this->serial->print(this->sensorNumber); this->serial->print(" value: "); this->serial->println(this->actualCurrent);
   }
   return this->actualCurrent;
   
@@ -173,7 +182,7 @@ VoltageSensor::VoltageSensor(int sensNum) {
 
 }
 
-void VoltageSensor::initWith(PinName voltPin, float sensVpV, float adcBits, float adcRange, bool useSer, Stream &ser) {
+void VoltageSensor::initWith(PinName voltPin, float sensVpV, float adcBits, float adcRange, bool useSer, Stream *ser) {
   this->adcSteps = pow(2, adcBits) - 1;
   this->adcR = adcRange;
   this->sensorVoltPerVolt = sensVpV;
@@ -187,7 +196,7 @@ float VoltageSensor::read() {
   this->rawVoltage = analogRead(voltagePin);
   this->actualVoltage = this->rawVoltage * (this->adcR/this->adcSteps) * (1 / this->sensorVoltPerVolt);
   if (this->serialUsed == true) {
-    this->serial.print("Sensor number "); this->serial.print(this->sensorNumber); this->serial.print(" value: "); this->serial.println(this->actualVoltage);
+    this->serial->print("Sensor number "); this->serial->print(this->sensorNumber); this->serial->print(" value: "); this->serial->println(this->actualVoltage);
   }
   return this->actualVoltage;
 }
