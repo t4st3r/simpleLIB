@@ -153,21 +153,21 @@ CurrentSensor::CurrentSensor(int sensNum) {
   this->sensorNumber = sensNum;
 }
 
-void CurrentSensor::initWith(PinName currPin, float sensR, float sensVpV, float adcBits, float adcRange, bool useSer, Stream *ser) {
+void CurrentSensor::initWith(PinName currPin, float sensR, float sensVpV, float adcBits, float adcRefV, bool useSer, Stream *ser) {
   this->adcSteps = pow(2, adcBits) - 1;
-  this->adcR = adcRange;
+  this->adcU = adcRefV;
   this->sensorResistance = sensR;
   this->sensorVoltPerVolt = sensVpV;
   this->serialUsed = useSer;
   this->serial = ser;
   this->currentPin = currPin;
-  analogReadResolution(this->adcSteps);
+  analogReadResolution(adcBits);
 
 }
 
 float CurrentSensor::read() {
   this->rawCurrent = analogRead(this->currentPin);
-  this->actualCurrent = (this->rawCurrent * (this->adcR/this->adcSteps) * (1 / this->sensorVoltPerVolt)) / this->sensorResistance;
+  this->actualCurrent = ((this->rawCurrent * (this->adcU/this->adcSteps)) * (1 / this->sensorVoltPerVolt)) / this->sensorResistance;
   if (this->serialUsed == true) {
     this->serial->print("Sensor number "); this->serial->print(this->sensorNumber); this->serial->print(" value: "); this->serial->println(this->actualCurrent);
   }
@@ -182,19 +182,20 @@ VoltageSensor::VoltageSensor(int sensNum) {
 
 }
 
-void VoltageSensor::initWith(PinName voltPin, float sensVpV, float adcBits, float adcRange, bool useSer, Stream *ser) {
+void VoltageSensor::initWith(PinName voltPin, float sensVpV, float adcBits, float adcRefV, bool useSer, Stream *ser) {
   this->adcSteps = pow(2, adcBits) - 1;
-  this->adcR = adcRange;
+  this->adcU = adcRefV;
   this->sensorVoltPerVolt = sensVpV;
   this->serialUsed = useSer;
   this->serial = ser;
   this->voltagePin = voltPin;
+  analogReadResolution(adcBits);
 
 }
 
 float VoltageSensor::read() {
   this->rawVoltage = analogRead(voltagePin);
-  this->actualVoltage = this->rawVoltage * (this->adcR/this->adcSteps) * (1 / this->sensorVoltPerVolt);
+  this->actualVoltage = this->rawVoltage * (this->adcU/this->adcSteps) * (this->sensorVoltPerVolt);
   if (this->serialUsed == true) {
     this->serial->print("Sensor number "); this->serial->print(this->sensorNumber); this->serial->print(" value: "); this->serial->println(this->actualVoltage);
   }
@@ -205,8 +206,8 @@ float VoltageSensor::read() {
 
 void toggle(bool &toggled) {toggled = !toggled;}
 
-float toActualValue(float reading, float adcVolt, float adcBits) {
-  return (reading * (adcVolt / pow(2, adcBits)));
+float toActualValue(float reading, float adcRefV, float adcBits) {
+  return (reading * (adcRefV / pow(2, adcBits)));
 }
 
 
