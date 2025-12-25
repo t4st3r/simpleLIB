@@ -108,7 +108,6 @@ bool BasicButton::beingPressed() {
   this->pressed = (this->state == this->lastState && this->state == this->actOn);
   this->lastState = this->state;
   delay(5);
-
   if (this->serialUsed == true && this->pressed == true) {
     this->serial->print("Button number "); this->serial->print(this->buttonNumber); this->serial->println(" is being pressed!");
   }
@@ -133,7 +132,7 @@ void NTCTempSensor::initWith(PinName sensPin, float adcRefV, float adcBits, floa
   this->serR = seriesResistor;
   this->serialUsed = useSer;
   this->serial = ser;
-  analogReadResolution(this->adcSteps);
+  analogReadResolution(adcBits);
 
 }
 
@@ -141,6 +140,9 @@ float NTCTempSensor::read() {
   this->rawTemp = analogRead(this->sensorPin);
   this->adcRealU = this->rawTemp * (this->adcU/this->adcSteps);
   this->realTemp = (1.0 / ((log(((this->adcRealU * this->serR) / (this->adcU - this->adcRealU)) / this->resAt25) * (1.0 / ntcB)) + (1.0 / 298.15)) - 273.15); // output in Celsius
+  if (this->serialUsed == true) {
+    this->serial->print("NTC sensor number "); this->serial->print(this->sensorNumber); this->serial->print(" read value: "); this->serial->print(this->realTemp); this->serial->println(" °C");
+  }
   return this->realTemp;
 
 }
