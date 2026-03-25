@@ -19,6 +19,7 @@ class TempPreset {
   void saveTo(EEPROM_SPI_WE& mem); //save preset to EEPROM memory at the address that is set through initWith
   void recallFrom(EEPROM_SPI_WE& mem); //load preset from EEPROM memory at the address that is set through initWith
   void setTemperature(float temperature); //change preset temperature to passed temperature value
+  void getTemp(); //returns the "temp" variable from the preset object
 
 };
 
