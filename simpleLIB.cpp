@@ -47,7 +47,7 @@ void TempPreset::setTemperature(float temperature) {
   }
 }
 
-void TempPreset::getTemp() {
+float TempPreset::getTemp() {
   return this->temp;
 }
 
