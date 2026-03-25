@@ -47,6 +47,10 @@ void TempPreset::setTemperature(float temperature) {
   }
 }
 
+void TempPreset::getTemp() {
+  return this->temp;
+}
+
 //end of class TempPreset
 
 //Class BasicButton to be used for basic button controlled applications, including function for holding buttons down and key press detection.
